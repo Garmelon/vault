@@ -3,5 +3,10 @@ name = "vault"
 version = "0.0.0"
 edition = "2021"
 
+[features]
+tokio = ["dep:tokio"]
+
 [dependencies]
 rusqlite = "0.28.0"
+thiserror = "1.0.37"
+tokio = { version = "1.23.0", features = ["sync"], optional = true }
