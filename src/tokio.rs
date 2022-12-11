@@ -57,7 +57,7 @@ pub type Result<R> = result::Result<R, Error>;
 ///
 /// The migration does not need to update the `user_version` or commit the
 /// transaction.
-pub type Migration = fn(&mut Transaction, usize) -> rusqlite::Result<()>;
+pub type Migration = fn(&mut Transaction<'_>, usize) -> rusqlite::Result<()>;
 
 fn migrate(conn: &mut Connection, migrations: &[Migration]) -> rusqlite::Result<()> {
     let mut tx = conn.transaction()?;
