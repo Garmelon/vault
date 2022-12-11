@@ -48,8 +48,9 @@ pub type Result<R> = result::Result<R, Error>;
 
 /// A single database migration.
 ///
-/// It receives a [`Transaction`] to perform database operations in, and its
-/// index in the migration array. The latter might be useful for logging.
+/// It receives a [`Transaction`] to perform database operations in, its index
+/// in the migration array and the size of the migration array. The latter two
+/// might be useful for logging.
 ///
 /// The transaction spans all migrations currently being performed. If any
 /// single migration fails, all migrations are rolled back and the database is
@@ -57,7 +58,7 @@ pub type Result<R> = result::Result<R, Error>;
 ///
 /// The migration does not need to update the `user_version` or commit the
 /// transaction.
-pub type Migration = fn(&mut Transaction<'_>, usize) -> rusqlite::Result<()>;
+pub type Migration = fn(&mut Transaction<'_>, usize, usize) -> rusqlite::Result<()>;
 
 fn migrate(conn: &mut Connection, migrations: &[Migration]) -> rusqlite::Result<()> {
     let mut tx = conn.transaction()?;
@@ -68,7 +69,7 @@ fn migrate(conn: &mut Connection, migrations: &[Migration]) -> rusqlite::Result<
     let total = migrations.len();
     assert!(user_version <= total, "malformed database schema");
     for (i, migration) in migrations.iter().enumerate().skip(user_version) {
-        migration(&mut tx, i)?;
+        migration(&mut tx, i, total)?;
     }
 
     tx.pragma_update(None, "user_version", total)?;
