@@ -1,4 +1,4 @@
-//! A vault for use with `tokio`.
+//! A vault for use with [`tokio`].
 
 use std::{any::Any, result, thread};
 
@@ -64,7 +64,7 @@ fn run(mut conn: Connection, mut rx: mpsc::UnboundedReceiver<Command>) {
     }
 }
 
-/// A vault for use with `tokio`.
+/// A vault for use with [`tokio`].
 #[derive(Clone)]
 pub struct TokioVault {
     tx: mpsc::UnboundedSender<Command>,
