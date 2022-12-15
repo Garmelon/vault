@@ -106,7 +106,25 @@ impl TokioVault {
     /// - `journal_mode` to `"wal"`
     /// - `foreign_keys` to `true`
     /// - `trusted_schema` to `false`
-    pub fn launch(
+    pub fn launch(conn: Connection, migrations: &[Migration]) -> rusqlite::Result<Self> {
+        Self::launch_and_prepare(conn, migrations, |_| Ok(()))
+    }
+
+    /// Launch a new thread to run database queries on, and return a
+    /// [`TokioVault`] for communication with that thread.
+    ///
+    /// The `prepare` parameter allows access to the database before a new
+    /// thread is launched but after all migrations have occurred. This can be
+    /// used for things that need to run after the migrations, yet whose failure
+    /// will prevent the database connection from being usable. An example would
+    /// be creating temporary tables based on existing data.
+    ///
+    /// It is recommended to set a few pragmas before calling this function, for
+    /// example:
+    /// - `journal_mode` to `"wal"`
+    /// - `foreign_keys` to `true`
+    /// - `trusted_schema` to `false`
+    pub fn launch_and_prepare(
         mut conn: Connection,
         migrations: &[Migration],
         prepare: impl FnOnce(&mut Connection) -> rusqlite::Result<()>,
