@@ -9,6 +9,7 @@
 // Clippy lints
 #![warn(clippy::use_self)]
 
+pub mod simple;
 #[cfg(feature = "tokio")]
 pub mod tokio;
 
