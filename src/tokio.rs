@@ -2,10 +2,10 @@
 
 use std::{any::Any, result, thread};
 
-use rusqlite::{Connection, Transaction};
+use rusqlite::Connection;
 use tokio::sync::{mpsc, oneshot};
 
-use crate::Action;
+use crate::{Action, Migration};
 
 /// Wrapper trait around [`Action`] that turns `Box<Self>` into a `Self` and the
 /// action's return type into `Box<dyn Any + Send>`.
@@ -47,36 +47,6 @@ pub enum Error {
 }
 
 pub type Result<R> = result::Result<R, Error>;
-
-/// A single database migration.
-///
-/// It receives a [`Transaction`] to perform database operations in, its index
-/// in the migration array and the size of the migration array. The latter two
-/// might be useful for logging.
-///
-/// The transaction spans all migrations currently being performed. If any
-/// single migration fails, all migrations are rolled back and the database is
-/// unchanged.
-///
-/// The migration does not need to update the `user_version` or commit the
-/// transaction.
-pub type Migration = fn(&mut Transaction<'_>, usize, usize) -> rusqlite::Result<()>;
-
-fn migrate(conn: &mut Connection, migrations: &[Migration]) -> rusqlite::Result<()> {
-    let mut tx = conn.transaction()?;
-
-    let user_version: usize =
-        tx.query_row("SELECT * FROM pragma_user_version", [], |r| r.get(0))?;
-
-    let total = migrations.len();
-    assert!(user_version <= total, "malformed database schema");
-    for (i, migration) in migrations.iter().enumerate().skip(user_version) {
-        migration(&mut tx, i, total)?;
-    }
-
-    tx.pragma_update(None, "user_version", total)?;
-    tx.commit()
-}
 
 fn run(mut conn: Connection, mut rx: mpsc::UnboundedReceiver<Command>) {
     while let Some(command) = rx.blocking_recv() {
@@ -132,7 +102,7 @@ impl TokioVault {
         migrations: &[Migration],
         prepare: impl FnOnce(&mut Connection) -> rusqlite::Result<()>,
     ) -> rusqlite::Result<Self> {
-        migrate(&mut conn, migrations)?;
+        crate::migrate(&mut conn, migrations)?;
         prepare(&mut conn)?;
 
         let (tx, rx) = mpsc::unbounded_channel();

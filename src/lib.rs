@@ -12,7 +12,7 @@
 #[cfg(feature = "tokio")]
 pub mod tokio;
 
-use rusqlite::Connection;
+use rusqlite::{Connection, Transaction};
 
 /// An action that can be performed on a [`Connection`].
 ///
@@ -24,4 +24,34 @@ use rusqlite::Connection;
 pub trait Action {
     type Result;
     fn run(self, conn: &mut Connection) -> rusqlite::Result<Self::Result>;
+}
+
+/// A single database migration.
+///
+/// It receives a [`Transaction`] to perform database operations in, its index
+/// in the migration array and the size of the migration array. The latter two
+/// might be useful for logging.
+///
+/// The transaction spans all migrations currently being performed. If any
+/// single migration fails, all migrations are rolled back and the database is
+/// unchanged.
+///
+/// The migration does not need to update the `user_version` or commit the
+/// transaction.
+pub type Migration = fn(&mut Transaction<'_>, usize, usize) -> rusqlite::Result<()>;
+
+fn migrate(conn: &mut Connection, migrations: &[Migration]) -> rusqlite::Result<()> {
+    let mut tx = conn.transaction()?;
+
+    let user_version: usize =
+        tx.query_row("SELECT * FROM pragma_user_version", [], |r| r.get(0))?;
+
+    let total = migrations.len();
+    assert!(user_version <= total, "malformed database schema");
+    for (i, migration) in migrations.iter().enumerate().skip(user_version) {
+        migration(&mut tx, i, total)?;
+    }
+
+    tx.pragma_update(None, "user_version", total)?;
+    tx.commit()
 }
