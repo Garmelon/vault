@@ -1,3 +1,5 @@
+//! A vault for use with `tokio`.
+
 use std::{any::Any, result, thread};
 
 use rusqlite::{Connection, Transaction};
@@ -35,8 +37,8 @@ enum Command {
 /// Error that can occur during execution of an [`Action`].
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
-    /// The vault thread has stopped.
-    #[error("vault thread has stopped")]
+    /// The vault's thread has been stopped and its sqlite connection closed.
+    #[error("vault has been stopped")]
     Stopped,
 
     /// A [`rusqlite::Error`] occurred while running the action.
@@ -92,6 +94,7 @@ fn run(mut conn: Connection, mut rx: mpsc::UnboundedReceiver<Command>) {
     }
 }
 
+/// A vault for use with `tokio`.
 #[derive(Clone)]
 pub struct TokioVault {
     tx: mpsc::UnboundedSender<Command>,
@@ -158,9 +161,9 @@ impl TokioVault {
         Ok(*result)
     }
 
-    /// Stop the vault thread.
+    /// Stop the vault's thread and close its sqlite connection.
     ///
-    /// Returns when the vault has been stopped successfully.
+    /// Returns once the vault has been stopped.
     pub async fn stop(&self) {
         let (tx, rx) = oneshot::channel();
         let _ = self.tx.send(Command::Stop(tx));
