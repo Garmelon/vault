@@ -86,7 +86,7 @@ fn run(mut conn: Connection, mut rx: mpsc::UnboundedReceiver<Command>) {
 }
 
 /// A vault for use with [`tokio`].
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct TokioVault {
     tx: mpsc::UnboundedSender<Command>,
 }

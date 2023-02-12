@@ -13,6 +13,7 @@ use crate::{Action, Migration};
 /// This vault may be useful if you want to re-use existing [`Action`]s and
 /// [`Migration`]s but don't need the additional guarantees and overhead of the
 /// other vaults.
+#[derive(Debug)]
 pub struct SimpleVault(Connection);
 
 impl SimpleVault {
