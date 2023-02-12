@@ -1,6 +1,6 @@
 //! A vault for use with [`tokio`].
 
-use std::{any::Any, result, thread};
+use std::{any::Any, error, fmt, result, thread};
 
 use rusqlite::Connection;
 use tokio::sync::{mpsc, oneshot};
@@ -35,15 +35,36 @@ enum Command {
 }
 
 /// Error that can occur during execution of an [`Action`].
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug)]
 pub enum Error {
     /// The vault's thread has been stopped and its sqlite connection closed.
-    #[error("vault has been stopped")]
     Stopped,
-
     /// A [`rusqlite::Error`] occurred while running the action.
-    #[error("{0}")]
-    Rusqlite(#[from] rusqlite::Error),
+    Rusqlite(rusqlite::Error),
+}
+
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Stopped => "vault has been stopped".fmt(f),
+            Self::Rusqlite(err) => err.fmt(f),
+        }
+    }
+}
+
+impl error::Error for Error {
+    fn source(&self) -> Option<&(dyn error::Error + 'static)> {
+        match self {
+            Self::Stopped => None,
+            Self::Rusqlite(err) => Some(err),
+        }
+    }
+}
+
+impl From<rusqlite::Error> for Error {
+    fn from(value: rusqlite::Error) -> Self {
+        Self::Rusqlite(value)
+    }
 }
 
 pub type Result<R> = result::Result<R, Error>;
