@@ -24,7 +24,8 @@ use rusqlite::{Connection, Transaction};
 /// return the result. The way in which this occurs depends on the vault.
 pub trait Action {
     type Result;
-    fn run(self, conn: &mut Connection) -> rusqlite::Result<Self::Result>;
+    type Error;
+    fn run(self, conn: &mut Connection) -> Result<Self::Result, Self::Error>;
 }
 
 /// A single database migration.

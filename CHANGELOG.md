@@ -13,6 +13,11 @@ Procedure when bumping the version number:
 
 ## Unreleased
 
+### Changed
+- Error handling of `Action`s is now more complex but more powerful. In
+  particular, `Action`s can now return almost arbitrary errors without nesting
+  `Result`s like before.
+
 ## v0.1.0 - 2023-02-12
 
 Initial release

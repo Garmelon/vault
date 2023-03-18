@@ -1,6 +1,6 @@
 //! A vault for use with [`tokio`].
 
-use std::{any::Any, error, fmt, result, thread};
+use std::{any::Any, error, fmt, thread};
 
 use rusqlite::Connection;
 use tokio::sync::{mpsc, oneshot};
@@ -12,16 +12,25 @@ use crate::{Action, Migration};
 ///
 /// This way, the trait that users of this crate interact with is kept simpler.
 trait ActionWrapper {
-    fn run(self: Box<Self>, conn: &mut Connection) -> rusqlite::Result<Box<dyn Any + Send>>;
+    fn run(
+        self: Box<Self>,
+        conn: &mut Connection,
+    ) -> Result<Box<dyn Any + Send>, Box<dyn Any + Send>>;
 }
 
 impl<T: Action> ActionWrapper for T
 where
     T::Result: Send + 'static,
+    T::Error: Send + 'static,
 {
-    fn run(self: Box<Self>, conn: &mut Connection) -> rusqlite::Result<Box<dyn Any + Send>> {
-        let result = (*self).run(conn)?;
-        Ok(Box::new(result))
+    fn run(
+        self: Box<Self>,
+        conn: &mut Connection,
+    ) -> Result<Box<dyn Any + Send>, Box<dyn Any + Send>> {
+        match (*self).run(conn) {
+            Ok(result) => Ok(Box::new(result)),
+            Err(err) => Err(Box::new(err)),
+        }
     }
 }
 
@@ -29,45 +38,37 @@ where
 enum Command {
     Action(
         Box<dyn ActionWrapper + Send>,
-        oneshot::Sender<rusqlite::Result<Box<dyn Any + Send>>>,
+        oneshot::Sender<Result<Box<dyn Any + Send>, Box<dyn Any + Send>>>,
     ),
     Stop(oneshot::Sender<()>),
 }
 
 /// Error that can occur during execution of an [`Action`].
 #[derive(Debug)]
-pub enum Error {
+pub enum Error<E> {
     /// The vault's thread has been stopped and its sqlite connection closed.
     Stopped,
-    /// A [`rusqlite::Error`] occurred while running the action.
-    Rusqlite(rusqlite::Error),
+    /// An error was returned by the [`Action`].
+    Action(E),
 }
 
-impl fmt::Display for Error {
+impl<E: fmt::Display> fmt::Display for Error<E> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Stopped => "vault has been stopped".fmt(f),
-            Self::Rusqlite(err) => err.fmt(f),
+            Self::Action(err) => err.fmt(f),
         }
     }
 }
 
-impl error::Error for Error {
+impl<E: error::Error> error::Error for Error<E> {
     fn source(&self) -> Option<&(dyn error::Error + 'static)> {
         match self {
             Self::Stopped => None,
-            Self::Rusqlite(err) => Some(err),
+            Self::Action(err) => err.source(),
         }
     }
 }
-
-impl From<rusqlite::Error> for Error {
-    fn from(value: rusqlite::Error) -> Self {
-        Self::Rusqlite(value)
-    }
-}
-
-pub type Result<R> = result::Result<R, Error>;
 
 fn run(mut conn: Connection, mut rx: mpsc::UnboundedReceiver<Command>) {
     while let Some(command) = rx.blocking_recv() {
@@ -132,24 +133,34 @@ impl TokioVault {
     }
 
     /// Execute an [`Action`] and return the result.
-    pub async fn execute<A>(&self, action: A) -> Result<A::Result>
+    pub async fn execute<A>(&self, action: A) -> Result<A::Result, Error<A::Error>>
     where
         A: Action + Send + 'static,
         A::Result: Send,
+        A::Error: Send,
     {
         let (tx, rx) = oneshot::channel();
         self.tx
             .send(Command::Action(Box::new(action), tx))
             .map_err(|_| Error::Stopped)?;
 
-        let result = rx.await.map_err(|_| Error::Stopped)??;
+        let result = rx.await.map_err(|_| Error::Stopped)?;
 
-        // The ActionWrapper runs Action::run, which returns Action::Result. It
-        // then wraps this into Any, which we're now trying to downcast again to
-        // Action::Result. This should always work.
-        let result = result.downcast().unwrap();
-
-        Ok(*result)
+        // The ActionWrapper runs Action::run, which returns
+        // Result<Action::Result, Action::Error>. It then wraps the
+        // Action::Result and Action::Error into Any, which we're now trying to
+        // downcast again to Action::Result and Action::Error. This should
+        // always work.
+        match result {
+            Ok(result) => {
+                let result = *result.downcast::<A::Result>().unwrap();
+                Ok(result)
+            }
+            Err(err) => {
+                let err = *err.downcast::<A::Error>().unwrap();
+                Err(Error::Action(err))
+            }
+        }
     }
 
     /// Stop the vault's thread and close its sqlite connection.
