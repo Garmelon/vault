@@ -20,6 +20,7 @@ Procedure when bumping the version number:
   `Result`s like before.
 - **(breaking)**
   Renamed `Action::Result` to `Action::Output`
+- Relaxed dependencies
 
 ## v0.1.0 - 2023-02-12
 
