@@ -9,11 +9,16 @@
 // Clippy lints
 #![warn(clippy::use_self)]
 
+#[cfg(feature = "serde")]
+pub mod serde;
 pub mod simple;
 #[cfg(feature = "tokio")]
 pub mod tokio;
 
 use rusqlite::{Connection, Transaction};
+
+#[cfg(feature = "serde")]
+pub use self::serde::*;
 
 /// An action that can be performed on a [`Connection`].
 ///
