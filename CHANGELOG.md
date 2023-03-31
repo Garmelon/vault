@@ -16,6 +16,7 @@ Procedure when bumping the version number:
 ### Added
 - `serde` feature
 - `serde::from_row_via_index`
+- `serde::from_row_via_name`
 
 ### Changed
 - **(breaking)**
