@@ -13,6 +13,9 @@ Procedure when bumping the version number:
 
 ## Unreleased
 
+### Added
+- `serde` feature
+
 ### Changed
 - **(breaking)**
   Error handling of `Action`s is now more complex but more powerful. In

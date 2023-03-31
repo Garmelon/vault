@@ -4,8 +4,10 @@ version = "0.1.0"
 edition = "2021"
 
 [features]
+serde = ["dep:serde"]
 tokio = ["dep:tokio"]
 
 [dependencies]
 rusqlite = "0.28"
+serde = { version = "1.0", optional = true }
 tokio = { version = "1.25", features = ["sync"], optional = true }
