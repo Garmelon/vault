@@ -20,7 +20,7 @@ trait ActionWrapper {
 
 impl<T: Action> ActionWrapper for T
 where
-    T::Result: Send + 'static,
+    T::Output: Send + 'static,
     T::Error: Send + 'static,
 {
     fn run(
@@ -133,10 +133,10 @@ impl TokioVault {
     }
 
     /// Execute an [`Action`] and return the result.
-    pub async fn execute<A>(&self, action: A) -> Result<A::Result, Error<A::Error>>
+    pub async fn execute<A>(&self, action: A) -> Result<A::Output, Error<A::Error>>
     where
         A: Action + Send + 'static,
-        A::Result: Send,
+        A::Output: Send,
         A::Error: Send,
     {
         let (tx, rx) = oneshot::channel();
@@ -153,7 +153,7 @@ impl TokioVault {
         // always work.
         match result {
             Ok(result) => {
-                let result = *result.downcast::<A::Result>().unwrap();
+                let result = *result.downcast::<A::Output>().unwrap();
                 Ok(result)
             }
             Err(err) => {

@@ -23,9 +23,9 @@ use rusqlite::{Connection, Transaction};
 /// Actions are usually passed to a vault which will then execute them and
 /// return the result. The way in which this occurs depends on the vault.
 pub trait Action {
-    type Result;
+    type Output;
     type Error;
-    fn run(self, conn: &mut Connection) -> Result<Self::Result, Self::Error>;
+    fn run(self, conn: &mut Connection) -> Result<Self::Output, Self::Error>;
 }
 
 /// A single database migration.

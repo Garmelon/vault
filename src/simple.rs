@@ -52,7 +52,7 @@ impl SimpleVault {
     }
 
     /// Execute an [`Action`] and return the result.
-    pub fn execute<A: Action>(&mut self, action: A) -> Result<A::Result, A::Error> {
+    pub fn execute<A: Action>(&mut self, action: A) -> Result<A::Output, A::Error> {
         action.run(&mut self.0)
     }
 }
