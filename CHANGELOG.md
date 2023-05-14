@@ -13,6 +13,8 @@ Procedure when bumping the version number:
 
 ## Unreleased
 
+## v0.2.0 - 2023-05-14
+
 ### Added
 - `serde` feature
 - `serde::from_row_via_index`
