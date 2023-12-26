@@ -13,6 +13,10 @@ Procedure when bumping the version number:
 
 ## Unreleased
 
+### Changed
+- **(breaking)**
+  Bumped `rusqlite` dependency from `0.29` to `0.30`
+
 ## v0.2.0 - 2023-05-14
 
 ### Added
