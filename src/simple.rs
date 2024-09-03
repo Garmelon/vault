@@ -34,13 +34,13 @@ impl SimpleVault {
     ///
     /// The `prepare` parameter allows access to the database after all
     /// migrations have occurred. This parameter could be replaced by executing
+    /// an [`Action`] performing the same operations.
     ///
     /// It is recommended to set a few pragmas before calling this function, for
     /// example:
     /// - `journal_mode` to `"wal"`
     /// - `foreign_keys` to `true`
     /// - `trusted_schema` to `false`
-    /// an [`Action`] performing the same operations.
     pub fn new_and_prepare(
         mut conn: Connection,
         migrations: &[Migration],
