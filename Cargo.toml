@@ -8,6 +8,6 @@ serde = ["dep:serde"]
 tokio = ["dep:tokio"]
 
 [dependencies]
-rusqlite = "0.32.1"
+rusqlite = "0.33.0"
 serde = { version = "1.0.209", optional = true }
 tokio = { version = "1.40.0", features = ["sync"], optional = true }
