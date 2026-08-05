@@ -50,8 +50,8 @@ pub type Migration = fn(&mut Transaction<'_>, usize, usize) -> rusqlite::Result<
 fn migrate(conn: &mut Connection, migrations: &[Migration]) -> rusqlite::Result<()> {
     let mut tx = conn.transaction()?;
 
-    let user_version: usize =
-        tx.query_row("SELECT * FROM pragma_user_version", [], |r| r.get(0))?;
+    let user_version: i64 = tx.query_row("SELECT * FROM pragma_user_version", [], |r| r.get(0))?;
+    let user_version: usize = user_version.try_into().unwrap();
 
     let total = migrations.len();
     assert!(user_version <= total, "malformed database schema");
@@ -59,6 +59,7 @@ fn migrate(conn: &mut Connection, migrations: &[Migration]) -> rusqlite::Result<
         migration(&mut tx, i, total)?;
     }
 
+    let total: i64 = total.try_into().unwrap();
     tx.pragma_update(None, "user_version", total)?;
     tx.commit()
 }

@@ -16,7 +16,7 @@ Procedure when bumping the version number:
 
 ### Changed
 
-- **(breaking)** Bumped `rusqlite` dependency from `0.32` to `0.33`
+- **(breaking)** Bumped `rusqlite` dependency from `0.32` to `0.40`
 
 ## v0.5.0 - 2024-09-04
 
